@@ -646,49 +646,10 @@ func (m Model) renderMainWithBorder() string {
 	// Get the main content
 	mainContent := m.renderMainContent()
 
-	// Create border style with distinct pulsing colors for each animation frame
-	var borderColor string
-	if m.beatAnimation > 0 {
-		// Different color for each pulse frame to make pulsing more visible
-		switch m.beatAnimation {
-		case 5:
-			if m.currentBeat == 1 {
-				borderColor = "51" // Bright teal for downbeat
-			} else {
-				borderColor = "226" // Bright yellow for other beats
-			}
-		case 4:
-			if m.currentBeat == 1 {
-				borderColor = "45" // Cyan for downbeat fade
-			} else {
-				borderColor = "220" // Orange-yellow for other beats fade
-			}
-		case 3:
-			if m.currentBeat == 1 {
-				borderColor = "39" // Blue for downbeat fade
-			} else {
-				borderColor = "214" // Orange for other beats fade
-			}
-		case 2:
-			if m.currentBeat == 1 {
-				borderColor = "33" // Dark blue for downbeat fade
-			} else {
-				borderColor = "208" // Dark orange for other beats fade
-			}
-		case 1:
-			if m.currentBeat == 1 {
-				borderColor = "27" // Navy for downbeat final fade
-			} else {
-				borderColor = "202" // Dark red for other beats final fade
-			}
-		}
-	} else {
-		borderColor = "86" // Default green between beats
-	}
-	
+	// Static yellow border
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(borderColor)).
+		BorderForeground(lipgloss.Color("226")).
 		Padding(1, 2).
 		Width(m.width - 10).
 		Align(lipgloss.Center)
