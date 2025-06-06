@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/djdjo/metrognome/cmd/metrognome"
+	"github.com/drj613/metrognome/cmd/metrognome"
 )
 
 func main() {

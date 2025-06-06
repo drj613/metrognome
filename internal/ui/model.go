@@ -10,24 +10,24 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/djdjo/metrognome/internal/metronome"
+	"github.com/drj613/metrognome/internal/metronome"
 )
 
 // Model represents the UI state
 type Model struct {
-	metronome        *metronome.Metronome
-	currentBeat      int
-	lastBeatTime     time.Time
-	selectedPreset   int
-	showPresets      bool
-	showHelp         bool
-	help             help.Model
-	keys             keyMap
-	width            int
-	height           int
-	beatAnimation    int
-	gnomeFrame       int
-	soundEnabled     bool
+	metronome      *metronome.Metronome
+	currentBeat    int
+	lastBeatTime   time.Time
+	selectedPreset int
+	showPresets    bool
+	showHelp       bool
+	help           help.Model
+	keys           keyMap
+	width          int
+	height         int
+	beatAnimation  int
+	gnomeFrame     int
+	soundEnabled   bool
 }
 
 // beatMsg is sent when a beat occurs
@@ -38,16 +38,16 @@ type tickMsg time.Time
 
 // keyMap defines our key bindings
 type keyMap struct {
-	Up       key.Binding
-	Down     key.Binding
-	Left     key.Binding
-	Right    key.Binding
-	Space    key.Binding
-	Tab      key.Binding
-	Preset   key.Binding
-	Sound    key.Binding
-	Help     key.Binding
-	Quit     key.Binding
+	Up     key.Binding
+	Down   key.Binding
+	Left   key.Binding
+	Right  key.Binding
+	Space  key.Binding
+	Tab    key.Binding
+	Preset key.Binding
+	Sound  key.Binding
+	Help   key.Binding
+	Quit   key.Binding
 }
 
 // ShortHelp returns keybindings to be shown in the mini help view
@@ -143,14 +143,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentBeat = int(msg)
 		m.lastBeatTime = time.Now()
 		m.beatAnimation = 5 // Start beat animation
-		
+
 		// Play sound if enabled
 		if m.soundEnabled {
 			// Play different sound for first beat
 			isFirstBeat := m.currentBeat == 1
 			go playSound(isFirstBeat)
 		}
-		
+
 		return m, listenForBeats(m.metronome)
 
 	case tickMsg:
@@ -287,7 +287,7 @@ func (m Model) renderMain() string {
 
 	// Time signature
 	tsDisplay := fmt.Sprintf("%s", m.metronome.TimeSignature.Name)
-	
+
 	// Beat visualization
 	beats := ""
 	for i := 1; i <= m.metronome.TimeSignature.Beats; i++ {
@@ -308,7 +308,7 @@ func (m Model) renderMain() string {
 				Background(lipgloss.Color("236")).
 				Foreground(lipgloss.Color("244"))
 		}
-		
+
 		if i == 1 {
 			beats += style.Render("𝟙")
 		} else {
@@ -322,7 +322,7 @@ func (m Model) renderMain() string {
 		status = "Playing... Press SPACE to stop"
 	}
 	statusLine := statusStyle.Render(status)
-	
+
 	// Sound status
 	soundStatus := "🔇 Sound: OFF"
 	if m.soundEnabled {
@@ -332,7 +332,7 @@ func (m Model) renderMain() string {
 
 	// Gnome saying
 	saying := m.metronome.TimeSignature.GnomeSaying
-	
+
 	// BPM description
 	bpmDesc := metronome.GetBPMDescription(m.metronome.BPM)
 
@@ -360,7 +360,7 @@ func (m Model) renderMain() string {
 
 	// Help hint
 	helpHint := m.help.View(m.keys)
-	
+
 	// Quit instruction
 	quitInstruction := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
@@ -369,7 +369,7 @@ func (m Model) renderMain() string {
 	// Center everything
 	doc := lipgloss.NewStyle().
 		Width(m.width).
-		Height(m.height - 3). // Leave room for help and quit instruction
+		Height(m.height-3). // Leave room for help and quit instruction
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(content)
 
@@ -482,7 +482,7 @@ func (m Model) getGnomeFrame() string {
 		"  △\n ಠ_ಠ\n /|\\\n / \\",
 		"  △\n ಠ◡ಠ\n \\|/\n / \\",
 	}
-	
+
 	if m.metronome.IsPlaying {
 		return gnomes[m.gnomeFrame]
 	}

@@ -1,4 +1,4 @@
-module github.com/djdjo/metrognome
+module github.com/drj613/metrognome
 
 go 1.21
 
