@@ -233,9 +233,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, m.keys.Up):
 			m.metronome.SetBPM(m.metronome.BPM + 5)
+			// Reset beat animation state when BPM changes
+			m.beatAnimation = 0
+			m.currentBeat = 1
+			// Restart beat listening if metronome was playing
+			if m.metronome.IsPlaying {
+				return m, listenForBeats(m.metronome)
+			}
 
 		case key.Matches(msg, m.keys.Down):
 			m.metronome.SetBPM(m.metronome.BPM - 5)
+			// Reset beat animation state when BPM changes
+			m.beatAnimation = 0
+			m.currentBeat = 1
+			// Restart beat listening if metronome was playing
+			if m.metronome.IsPlaying {
+				return m, listenForBeats(m.metronome)
+			}
 
 		case key.Matches(msg, m.keys.Tab):
 			// Cycle through time signatures
@@ -249,6 +263,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			nextIndex := (currentIndex + 1) % len(metronome.CommonTimeSignatures)
 			m.metronome.SetTimeSignature(metronome.CommonTimeSignatures[nextIndex])
+			// Reset beat animation state when time signature changes
+			m.beatAnimation = 0
+			m.currentBeat = 1
+			// Restart beat listening if metronome was playing
+			if m.metronome.IsPlaying {
+				return m, listenForBeats(m.metronome)
+			}
 
 		case key.Matches(msg, m.keys.Preset):
 			m.showPresets = !m.showPresets
@@ -277,6 +298,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.metronome.SetBPM(preset.BPM)
 				m.metronome.SetTimeSignature(preset.TimeSignature)
 				m.showPresets = false
+				// Reset beat animation state when preset changes
+				m.beatAnimation = 0
+				m.currentBeat = 1
+				// Restart beat listening if metronome was playing
+				if m.metronome.IsPlaying {
+					return m, listenForBeats(m.metronome)
+				}
 			}
 		}
 	}
@@ -405,91 +433,80 @@ func (m Model) renderHelp() string {
 		Render(content)
 }
 
-// getGnomeFrame returns an animated gnome based on the current frame
-func (m Model) getGnomeFrame() string {
-	gnomes := []string{
-		"  △  \n ಠ_ಠ \n /|\\ \n / \\ ",
-		"  △  \n ಠ‿ಠ \n \\|/ \n / \\ ",
-		"  △  \n ಠ_ಠ \n /|\\ \n / \\ ",
-		"  △  \n ಠ◡ಠ \n \\|/ \n / \\ ",
+// getGnome returns a gnome for a specific beat position with alternating poses
+func (m Model) getGnome(beatPosition int) string {
+	// Alternate between arms down and arms up poses
+	var gnome string
+	if beatPosition%2 == 1 {
+		// Odd positions (1, 3, 5, ...) - arms down
+		gnome = "  △  \n ಠ_ಠ \n /|\\ \n / \\ "
+	} else {
+		// Even positions (2, 4, 6, ...) - arms up
+		gnome = "  △  \n ಠ_ಠ \n \\|/ \n / \\ "
 	}
-
-	if m.metronome.IsPlaying {
-		return gnomes[m.gnomeFrame]
+	
+	// Check if this gnome should be lit up for the current beat
+	if m.metronome.IsPlaying && m.currentBeat == beatPosition && m.beatAnimation > 0 {
+		// This gnome is lit up
+		var color string
+		if beatPosition == 1 {
+			// First beat (downbeat) - special teal color
+			color = "51" // Bright teal
+		} else {
+			// Other beats - bright yellow
+			color = "226" // Bright yellow
+		}
+		
+		return lipgloss.NewStyle().
+			Foreground(lipgloss.Color(color)).
+			Render(gnome)
+	} else {
+		// This gnome is dim - dark gray
+		return lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240")). // Dim gray
+			Render(gnome)
 	}
-	return gnomes[0]
 }
 
-// getLeftGnome returns the left garden gnome (smaller, facing right)
-func (m Model) getLeftGnome() string {
-	leftGnomes := []string{
-		" ∆ \n◉_◉\n>|<\n ∧ ",
-		" ∆ \n◉‿◉\n>|>\n ∧ ",
-		" ∆ \n◉_◉\n>|<\n ∧ ",
-		" ∆ \n◉◡◉\n<|>\n ∧ ",
+// getBeatGnomes returns gnomes for each beat of the time signature
+func (m Model) getBeatGnomes() string {
+	numBeats := m.metronome.TimeSignature.Beats
+	gnomes := make([]string, numBeats)
+	
+	// Create a gnome for each beat position
+	for i := 1; i <= numBeats; i++ {
+		gnomes[i-1] = m.getGnome(i)
 	}
 
-	if m.metronome.IsPlaying {
-		return leftGnomes[m.gnomeFrame]
+	// Split all gnomes into lines
+	gnomeLines := make([][]string, numBeats)
+	for i, gnome := range gnomes {
+		gnomeLines[i] = strings.Split(gnome, "\n")
 	}
-	return leftGnomes[0]
-}
-
-// getRightGnome returns the right garden gnome (smaller, facing left)
-func (m Model) getRightGnome() string {
-	rightGnomes := []string{
-		" ▲ \n◉_◉\n<|>\n ^ ",
-		" ▲ \n◉‿◉\n<|<\n ^ ",
-		" ▲ \n◉_◉\n<|>\n ^ ",
-		" ▲ \n◉◡◉\n>|>\n ^ ",
-	}
-
-	if m.metronome.IsPlaying {
-		return rightGnomes[m.gnomeFrame]
-	}
-	return rightGnomes[0]
-}
-
-// getThreeGnomes returns all three gnomes arranged horizontally
-func (m Model) getThreeGnomes() string {
-	leftGnome := m.getLeftGnome()
-	centerGnome := m.getGnomeFrame()
-	rightGnome := m.getRightGnome()
-
-	// Split gnomes into lines
-	leftLines := strings.Split(leftGnome, "\n")
-	centerLines := strings.Split(centerGnome, "\n")
-	rightLines := strings.Split(rightGnome, "\n")
 
 	// Combine lines horizontally with spacing
 	result := ""
 	maxLines := 4 // All gnomes have 4 lines
-	for i := 0; i < maxLines; i++ {
+	
+	for lineNum := 0; lineNum < maxLines; lineNum++ {
 		line := ""
-		if i < len(leftLines) {
-			line += leftLines[i]
-		} else {
-			line += "   " // Empty space for left gnome
-		}
 		
-		line += "    " // Spacing between gnomes
-		
-		if i < len(centerLines) {
-			line += centerLines[i]
-		} else {
-			line += "     " // Empty space for center gnome
-		}
-		
-		line += "    " // Spacing between gnomes
-		
-		if i < len(rightLines) {
-			line += rightLines[i]
-		} else {
-			line += "   " // Empty space for right gnome
+		for gnomeNum := 0; gnomeNum < numBeats; gnomeNum++ {
+			// Add the gnome's line
+			if lineNum < len(gnomeLines[gnomeNum]) {
+				line += gnomeLines[gnomeNum][lineNum]
+			} else {
+				line += "     " // Empty space if gnome doesn't have this line
+			}
+			
+			// Add spacing between gnomes (except after the last one)
+			if gnomeNum < numBeats-1 {
+				line += "  " // Two spaces between gnomes
+			}
 		}
 		
 		result += line
-		if i < maxLines-1 {
+		if lineNum < maxLines-1 {
 			result += "\n"
 		}
 	}
@@ -721,8 +738,8 @@ func (m Model) renderMainContent() string {
 	// BPM description
 	bpmDesc := metronome.GetBPMDescription(m.metronome.BPM)
 
-	// Three animated gnomes
-	gnomes := m.getThreeGnomes()
+	// Beat counter gnomes
+	gnomes := m.getBeatGnomes()
 
 	// Compose the view
 	content := lipgloss.JoinVertical(
