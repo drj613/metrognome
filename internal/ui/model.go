@@ -420,16 +420,96 @@ func (m Model) getGnomeFrame() string {
 	return gnomes[0]
 }
 
+// getLeftGnome returns the left garden gnome (smaller, facing right)
+func (m Model) getLeftGnome() string {
+	leftGnomes := []string{
+		" ∆ \n◉_◉\n>|<\n ∧ ",
+		" ∆ \n◉‿◉\n>|>\n ∧ ",
+		" ∆ \n◉_◉\n>|<\n ∧ ",
+		" ∆ \n◉◡◉\n<|>\n ∧ ",
+	}
+
+	if m.metronome.IsPlaying {
+		return leftGnomes[m.gnomeFrame]
+	}
+	return leftGnomes[0]
+}
+
+// getRightGnome returns the right garden gnome (smaller, facing left)
+func (m Model) getRightGnome() string {
+	rightGnomes := []string{
+		" ▲ \n◉_◉\n<|>\n ^ ",
+		" ▲ \n◉‿◉\n<|<\n ^ ",
+		" ▲ \n◉_◉\n<|>\n ^ ",
+		" ▲ \n◉◡◉\n>|>\n ^ ",
+	}
+
+	if m.metronome.IsPlaying {
+		return rightGnomes[m.gnomeFrame]
+	}
+	return rightGnomes[0]
+}
+
+// getThreeGnomes returns all three gnomes arranged horizontally
+func (m Model) getThreeGnomes() string {
+	leftGnome := m.getLeftGnome()
+	centerGnome := m.getGnomeFrame()
+	rightGnome := m.getRightGnome()
+
+	// Split gnomes into lines
+	leftLines := strings.Split(leftGnome, "\n")
+	centerLines := strings.Split(centerGnome, "\n")
+	rightLines := strings.Split(rightGnome, "\n")
+
+	// Combine lines horizontally with spacing
+	result := ""
+	maxLines := 4 // All gnomes have 4 lines
+	for i := 0; i < maxLines; i++ {
+		line := ""
+		if i < len(leftLines) {
+			line += leftLines[i]
+		} else {
+			line += "   " // Empty space for left gnome
+		}
+		
+		line += "    " // Spacing between gnomes
+		
+		if i < len(centerLines) {
+			line += centerLines[i]
+		} else {
+			line += "     " // Empty space for center gnome
+		}
+		
+		line += "    " // Spacing between gnomes
+		
+		if i < len(rightLines) {
+			line += rightLines[i]
+		} else {
+			line += "   " // Empty space for right gnome
+		}
+		
+		result += line
+		if i < maxLines-1 {
+			result += "\n"
+		}
+	}
+
+	return result
+}
+
 // initializeStars creates star positions throughout the terminal
 func (m *Model) initializeStars() {
 	if m.width <= 0 || m.height <= 0 {
 		return
 	}
 
-	// Calculate number of stars based on terminal size
-	numStars := (m.width * m.height) / 20 // One star per 20 character cells
-	if numStars > 100 {
-		numStars = 100 // Cap at 100 stars to avoid performance issues
+	// Calculate number of stars based on terminal size - more stars!
+	numStars := (m.width * m.height) / 8 // One star per 8 character cells (much denser!)
+	if numStars > 300 {
+		numStars = 300 // Cap at 300 stars for performance
+	}
+	if numStars < 50 {
+		numStars = 50 // Minimum 50 stars for small terminals
 	}
 
 	m.starPositions = make([][]int, numStars)
@@ -481,37 +561,31 @@ func (m Model) generateStarBackground(content string) string {
 						// Choose star color based on beat animation and star index
 						colorIndex := i % len(m.starColors)
 
-						// Make stars twinkle with the beat
+						// Make ALL stars flash together with the beat
 						if m.beatAnimation > 0 {
-							// Right after a beat - flash bright! Use the brightest colors
-							// Higher beatAnimation = brighter (5=brightest, 1=dimming)
+							// ALL stars flash bright together on beat!
 							if m.beatAnimation >= 4 {
-								// Peak brightness - special handling for first beat
+								// Peak brightness - ALL stars use brightest color
 								if m.currentBeat == 1 {
-									// First beat gets the absolute brightest color
+									// First beat: ALL stars flash the brightest white
 									colorIndex = len(m.starColors) - 1
 								} else {
-									// Other beats get bright but slightly varied colors
-									colorIndex = len(m.starColors) - 1 - (i % 2)
+									// Other beats: ALL stars flash bright yellow/green
+									colorIndex = len(m.starColors) - 2
 								}
 							} else if m.beatAnimation >= 2 {
-								// Medium brightness
-								colorIndex = len(m.starColors) - 2
-							} else {
-								// Dimming down
+								// Medium fade - ALL stars dim together
 								colorIndex = len(m.starColors) - 3
-							}
-							
-							// Add some variety - different stars use slightly different bright colors
-							if i%3 == 0 {
-								colorIndex = len(m.starColors) - 1 - (m.beatAnimation % 3)
+							} else {
+								// Final fade - ALL stars dim further together
+								colorIndex = len(m.starColors) - 4
 							}
 						} else if m.metronome.IsPlaying {
-							// Between beats - gentle twinkling with dimmer colors
-							colorIndex = (i + m.gnomeFrame) % (len(m.starColors) - 3)
+							// Between beats - ALL stars stay dim but visible
+							colorIndex = 2 // Same dim color for all
 						} else {
-							// Stopped - very dim stars
-							colorIndex = i % 3
+							// Stopped - ALL stars very dim
+							colorIndex = 0 // Same very dim color for all
 						}
 
 						// Create twinkling star
@@ -647,8 +721,8 @@ func (m Model) renderMainContent() string {
 	// BPM description
 	bpmDesc := metronome.GetBPMDescription(m.metronome.BPM)
 
-	// Animated gnome
-	gnome := m.getGnomeFrame()
+	// Three animated gnomes
+	gnomes := m.getThreeGnomes()
 
 	// Compose the view
 	content := lipgloss.JoinVertical(
@@ -666,7 +740,7 @@ func (m Model) renderMainContent() string {
 		statusLine,
 		soundLine,
 		"",
-		gnome,
+		gnomes,
 		"",
 	)
 
