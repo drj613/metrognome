@@ -42,7 +42,7 @@ If you encounter module errors with `go install`, try:
 
 2. **Use specific version:**
    ```bash
-   go install github.com/drj613/metrognome@main
+   go install github.com/drj613/metrognome@v1.0.0
    ```
 
 3. **Clone method (always works):**

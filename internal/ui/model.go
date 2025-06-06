@@ -957,34 +957,48 @@ func max(a, b int) int {
 func playSound(isFirstBeat bool) {
 	switch runtime.GOOS {
 	case "darwin": // macOS
-		// Play different sounds for first beat vs others
 		if isFirstBeat {
-			exec.Command("afplay", "/System/Library/Sounds/Ping.aiff").Run()
+			// Play the regular beat sound + an extra blip for first beat
+			go exec.Command("afplay", "/System/Library/Sounds/Tink.aiff").Run() // Regular sound
+			go exec.Command("afplay", "/System/Library/Sounds/Pop.aiff").Run()  // Extra blip
 		} else {
 			exec.Command("afplay", "/System/Library/Sounds/Tink.aiff").Run()
 		}
 	case "linux":
-		// Try multiple options for Linux
 		if isFirstBeat {
-			// Higher pitch for first beat
-			if err := exec.Command("beep", "-f", "880", "-l", "100").Run(); err != nil {
-				exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/bell.oga").Run()
-			}
+			// Play regular beat + extra higher blip
+			go func() {
+				exec.Command("beep", "-f", "440", "-l", "50").Run() // Regular sound
+			}()
+			go func() {
+				time.Sleep(10 * time.Millisecond) // Slight delay
+				exec.Command("beep", "-f", "880", "-l", "30").Run() // Extra blip
+			}()
 		} else {
-			// Lower pitch for other beats
+			// Regular beat
 			if err := exec.Command("beep", "-f", "440", "-l", "50").Run(); err != nil {
 				exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/message.oga").Run()
 			}
 		}
 	case "windows":
-		// Windows PowerShell beep with different frequencies
 		if isFirstBeat {
-			exec.Command("powershell", "-c", "[console]::beep(1000,200)").Run()
+			// Play regular beat + extra blip
+			go func() {
+				exec.Command("powershell", "-c", "[console]::beep(800,100)").Run() // Regular sound
+			}()
+			go func() {
+				time.Sleep(50 * time.Millisecond) // Slight delay
+				exec.Command("powershell", "-c", "[console]::beep(1200,50)").Run() // Extra blip
+			}()
 		} else {
 			exec.Command("powershell", "-c", "[console]::beep(800,100)").Run()
 		}
 	default:
 		// Fallback to terminal bell
-		fmt.Print("\a")
+		if isFirstBeat {
+			fmt.Print("\a\a") // Double bell for first beat
+		} else {
+			fmt.Print("\a")
+		}
 	}
 }
