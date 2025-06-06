@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"os/exec"
 	"runtime"
@@ -34,6 +35,7 @@ type Model struct {
 	soundEnabled   bool
 	starColors     []string
 	starPositions  [][]int
+	pendulumAngle  float64
 }
 
 // beatMsg is sent when a beat occurs
@@ -215,6 +217,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.beatAnimation--
 		}
 		m.gnomeFrame = (m.gnomeFrame + 1) % 4
+		
+		// Update pendulum swing
+		if m.metronome.IsPlaying {
+			// Swing based on BPM - faster BPM = faster swing
+			swingSpeed := float64(m.metronome.BPM) / 60.0 * 3.14159 / 10.0
+			m.pendulumAngle += swingSpeed
+		}
+		
 		return m, tickAnimation()
 
 	case tea.KeyMsg:
@@ -636,10 +646,49 @@ func (m Model) renderMainWithBorder() string {
 	// Get the main content
 	mainContent := m.renderMainContent()
 
-	// Create border style
+	// Create border style with distinct pulsing colors for each animation frame
+	var borderColor string
+	if m.beatAnimation > 0 {
+		// Different color for each pulse frame to make pulsing more visible
+		switch m.beatAnimation {
+		case 5:
+			if m.currentBeat == 1 {
+				borderColor = "51" // Bright teal for downbeat
+			} else {
+				borderColor = "226" // Bright yellow for other beats
+			}
+		case 4:
+			if m.currentBeat == 1 {
+				borderColor = "45" // Cyan for downbeat fade
+			} else {
+				borderColor = "220" // Orange-yellow for other beats fade
+			}
+		case 3:
+			if m.currentBeat == 1 {
+				borderColor = "39" // Blue for downbeat fade
+			} else {
+				borderColor = "214" // Orange for other beats fade
+			}
+		case 2:
+			if m.currentBeat == 1 {
+				borderColor = "33" // Dark blue for downbeat fade
+			} else {
+				borderColor = "208" // Dark orange for other beats fade
+			}
+		case 1:
+			if m.currentBeat == 1 {
+				borderColor = "27" // Navy for downbeat final fade
+			} else {
+				borderColor = "202" // Dark red for other beats final fade
+			}
+		}
+	} else {
+		borderColor = "86" // Default green between beats
+	}
+	
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("86")).
+		BorderForeground(lipgloss.Color(borderColor)).
 		Padding(1, 2).
 		Width(m.width - 10).
 		Align(lipgloss.Center)
@@ -654,7 +703,7 @@ func (m Model) renderMainWithBorder() string {
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(borderedContent)
 
-	// Add star background
+	// Add star background only (no garden decorations)
 	return m.generateStarBackground(centeredContent)
 }
 
@@ -740,6 +789,9 @@ func (m Model) renderMainContent() string {
 
 	// Beat counter gnomes
 	gnomes := m.getBeatGnomes()
+	
+	// Pendulum swing arm
+	swingArm := m.getSwingArm()
 
 	// Compose the view
 	content := lipgloss.JoinVertical(
@@ -754,10 +806,12 @@ func (m Model) renderMainContent() string {
 		"",
 		beats,
 		"",
-		statusLine,
-		soundLine,
+		swingArm,
 		"",
 		gnomes,
+		"",
+		statusLine,
+		soundLine,
 		"",
 	)
 
@@ -783,6 +837,120 @@ func (m Model) renderMainContent() string {
 		"",
 		bottomContent,
 	)
+}
+
+// getSwingArm returns a visual pendulum that swings with the tempo
+func (m Model) getSwingArm() string {
+	// Create a simple pendulum visualization
+	armLength := 15
+	centerPos := armLength
+	
+	// Calculate pendulum position based on angle
+	offset := int(math.Sin(m.pendulumAngle) * float64(armLength))
+	pendulumPos := centerPos + offset
+	
+	// Build the pendulum line
+	line := strings.Repeat(" ", armLength*2+1)
+	lineRunes := []rune(line)
+	
+	// Add the pivot point
+	if centerPos < len(lineRunes) {
+		lineRunes[centerPos] = '┬'
+	}
+	
+	// Add the pendulum bob
+	if pendulumPos >= 0 && pendulumPos < len(lineRunes) {
+		lineRunes[pendulumPos] = '●'
+	}
+	
+	// Add connecting line if needed
+	start := min(centerPos, pendulumPos)
+	end := max(centerPos, pendulumPos)
+	for i := start + 1; i < end; i++ {
+		if i < len(lineRunes) && lineRunes[i] == ' ' {
+			lineRunes[i] = '─'
+		}
+	}
+	
+	pendulumLine := string(lineRunes)
+	
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color("244")).
+		Render(pendulumLine)
+}
+
+// addGardenDecorations adds a rich variety of garden decorations throughout the UI
+func (m Model) addGardenDecorations(content string) string {
+	if m.width <= 0 || m.height <= 0 {
+		return content
+	}
+	
+	lines := strings.Split(content, "\n")
+	
+	// Ensure we have enough lines
+	for len(lines) < m.height {
+		lines = append(lines, "")
+	}
+	
+	// Simpler decorations that work well with terminal rendering
+	decorations := []string{"*", ".", "o", "+", "^", "~", "x", "#"}
+	
+	// Add decorations to corners and edges only (safer)
+	decorationPositions := []struct{ row, col int }{
+		// Corners (with better bounds checking)
+		{1, 1}, {1, max(1, m.width-2)}, 
+		{max(1, m.height-2), 1}, {max(1, m.height-2), max(1, m.width-2)},
+		// A few edge positions
+		{0, m.width/4}, {0, 3*m.width/4},
+		{max(1, m.height-1), m.width/4}, {max(1, m.height-1), 3*m.width/4},
+	}
+	
+	// Place decorations safely
+	for i, pos := range decorationPositions {
+		row, col := pos.row, pos.col
+		
+		// Strict bounds checking
+		if row >= 0 && row < len(lines) && col >= 0 && col < m.width-1 {
+			// Ensure line is long enough
+			for len(lines[row]) <= col {
+				lines[row] += " "
+			}
+			
+			// Convert to runes for safe manipulation
+			lineRunes := []rune(lines[row])
+			if col < len(lineRunes) && lineRunes[col] == ' ' {
+				decoration := decorations[i%len(decorations)]
+				lineRunes[col] = rune(decoration[0])
+				lines[row] = string(lineRunes)
+			}
+		}
+	}
+	
+	return strings.Join(lines, "\n")
+}
+
+// abs returns the absolute value of an integer
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// max returns the maximum of two integers
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // playSound plays a system sound based on the OS

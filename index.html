@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrognome - Garden Fresh Terminal Metronome</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a2e 0%, #2d5a4a 50%, #1e3a2e 100%);
+            color: #e0f0e8;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 60px 0;
+            position: relative;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #7ed56f;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: #a8d8b9;
+            margin-bottom: 30px;
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            color: #c4e4d1;
+            max-width: 800px;
+            margin: 0 auto 40px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #55c57a, #7ed56f);
+            color: #1e3a2e;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(85, 197, 122, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(85, 197, 122, 0.4);
+        }
+
+        .features {
+            padding: 80px 0;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(126, 213, 111, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(126, 213, 111, 0.6);
+            box-shadow: 0 10px 30px rgba(126, 213, 111, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            color: #7ed56f;
+            margin-bottom: 15px;
+        }
+
+        .feature-description {
+            color: #c4e4d1;
+        }
+
+        .demo-section {
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .terminal-window {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 40px auto;
+            max-width: 800px;
+            font-family: 'Courier New', monospace;
+            color: #55c57a;
+            border: 2px solid #333;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .terminal-header {
+            background: #333;
+            margin: -20px -20px 20px;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+            color: #aaa;
+            border-bottom: 1px solid #555;
+        }
+
+        .terminal-content {
+            white-space: pre-line;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .installation {
+            padding: 80px 0;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .code-block {
+            background: #1a1a1a;
+            color: #55c57a;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            border-left: 4px solid #7ed56f;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: #7ed56f;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #a8d8b9;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        footer {
+            padding: 60px 0;
+            text-align: center;
+            color: #a8d8b9;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .github-link {
+            color: #7ed56f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .github-link:hover {
+            color: #55c57a;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="hero-title">🍄 Metrognome 🍄</h1>
+            <p class="hero-subtitle">Where Every Beat is Garden Fresh!</p>
+            <p class="hero-description">
+                A whimsical terminal-based metronome featuring garden gnomes, twinkling stars, 
+                and delightful animations. Built with Go and Bubble Tea for the ultimate CLI experience.
+            </p>
+            <a href="#installation" class="cta-button">Get Started</a>
+        </div>
+    </header>
+
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Magical Features</h2>
+            <p class="section-subtitle">Everything a garden gnome needs for perfect timing</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎵</div>
+                    <h3 class="feature-title">Multiple Time Signatures</h3>
+                    <p class="feature-description">From simple 4/4 garden marches to complex 7/8 gnome riddles, support for all your rhythmic needs.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <h3 class="feature-title">Twinkling Star Animation</h3>
+                    <p class="feature-description">ASCII stars dance across your terminal in perfect sync with the beat, creating a magical atmosphere.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🎭</div>
+                    <h3 class="feature-title">Animated Garden Gnomes</h3>
+                    <p class="feature-description">Watch gnomes light up with each beat, featuring alternating poses and special colors for downbeats.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3 class="feature-title">Pulsing Visual Feedback</h3>
+                    <p class="feature-description">Color-coded borders pulse with distinct hues for each beat animation frame.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3 class="feature-title">Garden-Themed Presets</h3>
+                    <p class="feature-description">Pre-configured rhythms from "Peaceful Garden Stroll" to "Pixie Dust Presto" for every occasion.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔊</div>
+                    <h3 class="feature-title">Cross-Platform Sound</h3>
+                    <p class="feature-description">Different audio cues for downbeats and regular beats on macOS, Linux, and Windows.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="demo-section">
+        <div class="container">
+            <h2 class="section-title">See It In Action</h2>
+            <p class="section-subtitle">A glimpse into the garden gnome metronome experience</p>
+            
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    Terminal - Metrognome
+                </div>
+                <div class="terminal-content">🎩 Welcome to Metrognome - Where Every Beat is Garden Fresh! 🌱
+
+╭────────────────────────────────────────────╮
+│              🍄 Metrognome 🍄              │
+│                                            │
+│                 120 BPM                    │
+│        Standard gnome work tempo           │
+│                                            │
+│          4/4 - Garden March                │
+│   Four steady steps through the garden!    │
+│                                            │
+│        ┬─────────────●─────────────         │
+│                                            │
+│    △     △     △     △                    │
+│   ಠ_ಠ   ಠ_ಠ   ಠ_ಠ   ಠ_ಠ                   │
+│   /|\   \|/   /|\   \|/                   │
+│   / \   / \   / \   / \                   │
+│                                            │
+│         Playing... Press SPACE to stop     │
+│               🔊 Sound: ON                 │
+╰────────────────────────────────────────────╯</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="installation" id="installation">
+        <div class="container">
+            <h2 class="section-title">Installation</h2>
+            <p class="section-subtitle">Get your garden gnome metronome up and running</p>
+            
+            <div class="code-block">
+# Clone the repository
+git clone https://github.com/yourusername/metrognome.git
+cd metrognome
+
+# Install dependencies
+go mod tidy
+
+# Run the application
+go run .
+
+# Or build and install
+go build -o metrognome
+./metrognome
+            </div>
+
+            <h3 class="feature-title" style="margin-top: 40px;">Quick Commands</h3>
+            <div class="features-grid" style="margin-top: 20px;">
+                <div class="feature-card">
+                    <div class="feature-title">Space</div>
+                    <p class="feature-description">Start/Stop the metronome</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">↑/↓</div>
+                    <p class="feature-description">Adjust BPM (±5)</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">←/→</div>
+                    <p class="feature-description">Change time signature</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">P</div>
+                    <p class="feature-description">Browse garden presets</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">S</div>
+                    <p class="feature-description">Toggle sound on/off</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">?</div>
+                    <p class="feature-description">Show help guide</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>Built with 🌱 by garden gnome enthusiasts</p>
+            <p>
+                <a href="https://github.com/yourusername/metrognome" class="github-link">
+                    View on GitHub
+                </a>
+            </p>
+            <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.7;">
+                "A gnome without rhythm is like a garden without flowers!" - Ancient Gnome Wisdom
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
