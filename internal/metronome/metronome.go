@@ -142,7 +142,7 @@ func (m *Metronome) Start() {
 				default:
 					// Channel is full, skip this beat
 				}
-				
+
 				m.CurrentBeat++
 				if m.CurrentBeat > m.TimeSignature.Beats {
 					m.CurrentBeat = 1

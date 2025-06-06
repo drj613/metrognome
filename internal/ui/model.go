@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/drj613/metrognome/internal/metronome"
@@ -22,6 +23,7 @@ type Model struct {
 	showPresets    bool
 	showHelp       bool
 	help           help.Model
+	commandsTable  table.Model
 	keys           keyMap
 	width          int
 	height         int
@@ -107,6 +109,51 @@ var keys = keyMap{
 	),
 }
 
+// createCommandsTable creates a styled table with commands
+func createCommandsTable() table.Model {
+	columns := []table.Column{
+		{Title: "Key", Width: 12},
+		{Title: "Action", Width: 30},
+		{Title: "Gnome's Wisdom", Width: 40},
+	}
+
+	rows := []table.Row{
+		{"Space", "Start/Stop metronome", "Every gnome needs their rhythm!"},
+		{"↑/k", "Increase BPM (+5)", "Faster steps through the garden"},
+		{"↓/j", "Decrease BPM (-5)", "Slower pace for flower sniffing"},
+		{"←/h", "Previous time signature", "Try different garden dances"},
+		{"→/l", "Next time signature", "Explore more rhythmic patterns"},
+		{"Tab", "Cycle time signatures", "Quick tempo style changes"},
+		{"p", "Toggle presets menu", "Choose pre-made garden rhythms"},
+		{"s", "Toggle sound on/off", "Gnomes prefer quiet sometimes"},
+		{"?", "Toggle this help", "Wisdom from the garden gnome"},
+		{"q/Ctrl+C", "Quit application", "Return to the mushroom house"},
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(false),
+		table.WithHeight(len(rows)),
+	)
+
+	tableStyle := table.DefaultStyles()
+	tableStyle.Header = tableStyle.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("86")).
+		BorderBottom(true).
+		Bold(true).
+		Foreground(lipgloss.Color("86"))
+
+	tableStyle.Selected = tableStyle.Selected.
+		Foreground(lipgloss.Color("212")).
+		Background(lipgloss.Color("236")).
+		Bold(false)
+
+	t.SetStyles(tableStyle)
+	return t
+}
+
 // NewModel creates a new UI model
 func NewModel() Model {
 	m := Model{
@@ -115,6 +162,7 @@ func NewModel() Model {
 		showPresets:    false,
 		showHelp:       false,
 		help:           help.New(),
+		commandsTable:  createCommandsTable(),
 		keys:           keys,
 		gnomeFrame:     0,
 		soundEnabled:   true,
@@ -138,6 +186,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.help.Width = msg.Width
+		m.commandsTable.SetWidth(msg.Width - 4)
 
 	case beatMsg:
 		m.currentBeat = int(msg)
@@ -336,8 +385,11 @@ func (m Model) renderMain() string {
 	// BPM description
 	bpmDesc := metronome.GetBPMDescription(m.metronome.BPM)
 
-	// Animated gnome
-	gnome := m.getGnomeFrame()
+	// Animated gnome - explicitly center it
+	gnome := lipgloss.NewStyle().
+		Width(m.width).
+		Align(lipgloss.Center).
+		Render(m.getGnomeFrame())
 
 	// Compose the view
 	content := lipgloss.JoinVertical(
@@ -356,6 +408,7 @@ func (m Model) renderMain() string {
 		soundLine,
 		"",
 		gnome,
+		"",
 	)
 
 	// Help hint
@@ -449,10 +502,10 @@ func (m Model) renderHelp() string {
 		Bold(true).
 		MarginBottom(2)
 
-	title := titleStyle.Render("🌻 Garden Gnome's Guide 🌻")
+	title := titleStyle.Render("🌻 Garden Gnome's Command Guide 🌻")
 
-	m.help.ShowAll = true
-	helpText := m.help.View(m.keys)
+	// Render the commands table
+	tableView := m.commandsTable.View()
 
 	gnomeWisdom := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
@@ -460,11 +513,18 @@ func (m Model) renderHelp() string {
 		MarginTop(2).
 		Render("\"A gnome without rhythm is like a garden without flowers!\"")
 
+	backInstruction := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("244")).
+		MarginTop(1).
+		Render("Press '?' again to return to the garden")
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		title,
-		helpText,
+		"",
+		tableView,
 		gnomeWisdom,
+		backInstruction,
 	)
 
 	return lipgloss.NewStyle().
@@ -477,10 +537,10 @@ func (m Model) renderHelp() string {
 // getGnomeFrame returns an animated gnome based on the current frame
 func (m Model) getGnomeFrame() string {
 	gnomes := []string{
-		"  △\n ಠ_ಠ\n /|\\\n / \\",
-		"  △\n ಠ‿ಠ\n \\|/\n / \\",
-		"  △\n ಠ_ಠ\n /|\\\n / \\",
-		"  △\n ಠ◡ಠ\n \\|/\n / \\",
+		"  △  \n ಠ_ಠ \n /|\\ \n / \\ ",
+		"  △  \n ಠ‿ಠ \n \\|/ \n / \\ ",
+		"  △  \n ಠ_ಠ \n /|\\ \n / \\ ",
+		"  △  \n ಠ◡ಠ \n \\|/ \n / \\ ",
 	}
 
 	if m.metronome.IsPlaying {
