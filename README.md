@@ -16,7 +16,7 @@ A delightful terminal-based metronome with a garden gnome theme! Keep perfect ti
 ### Method 1: Direct Install (Recommended)
 
 ```bash
-go install github.com/drj613/metrognome@v1.0.1
+go install github.com/drj613/metrognome@v1.0.2
 ```
 
 Or if you want to use `@latest` (may require cache bypass):
