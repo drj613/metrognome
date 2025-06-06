@@ -14,13 +14,13 @@ A delightful terminal-based metronome with a garden gnome theme! Keep perfect ti
 ## Installation
 
 ```bash
-go install github.com/djdjo/metrognome@latest
+go install github.com/drj613/metrognome@latest
 ```
 
 Or clone and build:
 
 ```bash
-git clone https://github.com/djdjo/metrognome.git
+git clone https://github.com/drj613/metrognome.git
 cd metrognome
 go build
 ```
