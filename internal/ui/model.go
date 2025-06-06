@@ -2,8 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"math/rand"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -30,6 +32,8 @@ type Model struct {
 	beatAnimation  int
 	gnomeFrame     int
 	soundEnabled   bool
+	starColors     []string
+	starPositions  [][]int
 }
 
 // beatMsg is sent when a beat occurs
@@ -166,8 +170,10 @@ func NewModel() Model {
 		keys:           keys,
 		gnomeFrame:     0,
 		soundEnabled:   true,
+		starColors:     []string{"240", "244", "250", "254", "230", "226", "222", "86", "212", "231"},
 	}
 	m.help.ShowAll = false
+	m.initializeStars()
 	return m
 }
 
@@ -187,6 +193,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.help.Width = msg.Width
 		m.commandsTable.SetWidth(msg.Width - 4)
+		m.initializeStars() // Reinitialize stars when window size changes
 
 	case beatMsg:
 		m.currentBeat = int(msg)
@@ -287,7 +294,7 @@ func (m Model) View() string {
 		return m.renderPresets()
 	}
 
-	return m.renderMain()
+	return m.renderMainWithBorder()
 }
 
 // listenForBeats creates a command that listens for metronome beats
@@ -303,142 +310,6 @@ func tickAnimation() tea.Cmd {
 	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
-}
-
-// renderMain renders the main metronome view
-func (m Model) renderMain() string {
-	// Styles
-	titleStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("86")).
-		Bold(true).
-		MarginBottom(1)
-
-	bpmStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("212")).
-		Bold(true)
-
-	beatStyle := lipgloss.NewStyle().
-		Width(6).
-		Height(3).
-		Align(lipgloss.Center, lipgloss.Center).
-		MarginRight(1)
-
-	statusStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241")).
-		MarginTop(1)
-
-	// Title
-	title := titleStyle.Render("🍄 Metrognome 🍄")
-
-	// BPM display
-	bpmDisplay := fmt.Sprintf("%d BPM", m.metronome.BPM)
-	bpmLine := bpmStyle.Render(bpmDisplay)
-
-	// Time signature
-	tsDisplay := fmt.Sprintf("%s", m.metronome.TimeSignature.Name)
-
-	// Beat visualization
-	beats := ""
-	for i := 1; i <= m.metronome.TimeSignature.Beats; i++ {
-		style := beatStyle
-		if i == m.currentBeat && m.metronome.IsPlaying {
-			// Animate the current beat
-			if m.beatAnimation > 0 {
-				style = style.
-					Background(lipgloss.Color("212")).
-					Foreground(lipgloss.Color("231"))
-			} else {
-				style = style.
-					Background(lipgloss.Color("240")).
-					Foreground(lipgloss.Color("231"))
-			}
-		} else {
-			style = style.
-				Background(lipgloss.Color("236")).
-				Foreground(lipgloss.Color("244"))
-		}
-
-		if i == 1 {
-			beats += style.Render("𝟙")
-		} else {
-			beats += style.Render(fmt.Sprintf("%d", i))
-		}
-	}
-
-	// Status
-	status := "Press SPACE to start"
-	if m.metronome.IsPlaying {
-		status = "Playing... Press SPACE to stop"
-	}
-	statusLine := statusStyle.Render(status)
-
-	// Sound status
-	soundStatus := "🔇 Sound: OFF"
-	if m.soundEnabled {
-		soundStatus = "🔊 Sound: ON"
-	}
-	soundLine := statusStyle.Render(soundStatus)
-
-	// Gnome saying
-	saying := m.metronome.TimeSignature.GnomeSaying
-
-	// BPM description
-	bpmDesc := metronome.GetBPMDescription(m.metronome.BPM)
-
-	// Animated gnome - explicitly center it
-	gnome := lipgloss.NewStyle().
-		Width(m.width).
-		Align(lipgloss.Center).
-		Render(m.getGnomeFrame())
-
-	// Compose the view
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		title,
-		"",
-		bpmLine,
-		bpmDesc,
-		"",
-		tsDisplay,
-		saying,
-		"",
-		beats,
-		"",
-		statusLine,
-		soundLine,
-		"",
-		gnome,
-		"",
-	)
-
-	// Help hint
-	helpHint := m.help.View(m.keys)
-
-	// Quit instruction
-	quitInstruction := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241")).
-		Render("Press 'q' or Ctrl+C to quit")
-
-	// Center everything
-	doc := lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height-3). // Leave room for help and quit instruction
-		Align(lipgloss.Center, lipgloss.Center).
-		Render(content)
-
-	// Add help and quit instruction at the bottom
-	bottomContent := lipgloss.JoinVertical(
-		lipgloss.Left,
-		helpHint,
-		quitInstruction,
-	)
-
-	// Final layout
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		doc,
-		bottomContent,
-	)
 }
 
 // renderPresets renders the preset selection view
@@ -547,6 +418,280 @@ func (m Model) getGnomeFrame() string {
 		return gnomes[m.gnomeFrame]
 	}
 	return gnomes[0]
+}
+
+// initializeStars creates star positions throughout the terminal
+func (m *Model) initializeStars() {
+	if m.width <= 0 || m.height <= 0 {
+		return
+	}
+
+	// Calculate number of stars based on terminal size
+	numStars := (m.width * m.height) / 20 // One star per 20 character cells
+	if numStars > 100 {
+		numStars = 100 // Cap at 100 stars to avoid performance issues
+	}
+
+	m.starPositions = make([][]int, numStars)
+
+	// Generate random positions for stars
+	for i := 0; i < numStars; i++ {
+		x := rand.Intn(m.width)
+		y := rand.Intn(m.height)
+		m.starPositions[i] = []int{x, y}
+	}
+}
+
+// generateStarBackground creates a background with ASCII stars
+func (m Model) generateStarBackground(content string) string {
+	if len(m.starPositions) == 0 || m.width <= 0 || m.height <= 0 {
+		return content
+	}
+
+	// Split content into lines
+	lines := strings.Split(content, "\n")
+
+	// Ensure we have enough lines
+	for len(lines) < m.height {
+		lines = append(lines, "")
+	}
+
+	// Build the result with stars overlaid
+	result := make([]string, len(lines))
+
+	for y, line := range lines {
+		resultLine := ""
+		lineRunes := []rune(line)
+
+		// Build the line character by character
+		maxX := m.width
+		if len(lineRunes) > maxX {
+			maxX = len(lineRunes)
+		}
+
+		for x := 0; x < maxX; x++ {
+			// Check if there's a star at this position
+			starAtPosition := false
+			var starChar string
+
+			for i, pos := range m.starPositions {
+				if pos[0] == x && pos[1] == y {
+					// Check if this position is empty space
+					if x >= len(lineRunes) || lineRunes[x] == ' ' {
+						// Choose star color based on beat animation and star index
+						colorIndex := i % len(m.starColors)
+
+						// Make stars twinkle with the beat
+						if m.beatAnimation > 0 {
+							// Right after a beat - flash bright! Use the brightest colors
+							// Higher beatAnimation = brighter (5=brightest, 1=dimming)
+							if m.beatAnimation >= 4 {
+								// Peak brightness - special handling for first beat
+								if m.currentBeat == 1 {
+									// First beat gets the absolute brightest color
+									colorIndex = len(m.starColors) - 1
+								} else {
+									// Other beats get bright but slightly varied colors
+									colorIndex = len(m.starColors) - 1 - (i % 2)
+								}
+							} else if m.beatAnimation >= 2 {
+								// Medium brightness
+								colorIndex = len(m.starColors) - 2
+							} else {
+								// Dimming down
+								colorIndex = len(m.starColors) - 3
+							}
+							
+							// Add some variety - different stars use slightly different bright colors
+							if i%3 == 0 {
+								colorIndex = len(m.starColors) - 1 - (m.beatAnimation % 3)
+							}
+						} else if m.metronome.IsPlaying {
+							// Between beats - gentle twinkling with dimmer colors
+							colorIndex = (i + m.gnomeFrame) % (len(m.starColors) - 3)
+						} else {
+							// Stopped - very dim stars
+							colorIndex = i % 3
+						}
+
+						// Create twinkling star
+						starColor := m.starColors[colorIndex]
+						starChar = lipgloss.NewStyle().
+							Foreground(lipgloss.Color(starColor)).
+							Render("✦")
+						starAtPosition = true
+						break
+					}
+				}
+			}
+
+			if starAtPosition {
+				resultLine += starChar
+			} else if x < len(lineRunes) {
+				resultLine += string(lineRunes[x])
+			} else {
+				resultLine += " "
+			}
+		}
+
+		result[y] = resultLine
+	}
+
+	return strings.Join(result, "\n")
+}
+
+// renderMainWithBorder renders the main content with a solid border and star background
+func (m Model) renderMainWithBorder() string {
+	// Get the main content
+	mainContent := m.renderMainContent()
+
+	// Create border style
+	borderStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("86")).
+		Padding(1, 2).
+		Width(m.width - 10).
+		Align(lipgloss.Center)
+
+	// Wrap content in border
+	borderedContent := borderStyle.Render(mainContent)
+
+	// Center the bordered content
+	centeredContent := lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(borderedContent)
+
+	// Add star background
+	return m.generateStarBackground(centeredContent)
+}
+
+// renderMainContent returns just the inner metronome content (without border)
+func (m Model) renderMainContent() string {
+	// Styles
+	titleStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("86")).
+		Bold(true).
+		MarginBottom(1)
+
+	bpmStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("212")).
+		Bold(true)
+
+	beatStyle := lipgloss.NewStyle().
+		Width(6).
+		Height(3).
+		Align(lipgloss.Center, lipgloss.Center).
+		MarginRight(1)
+
+	statusStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241")).
+		MarginTop(1)
+
+	// Title
+	title := titleStyle.Render("🍄 Metrognome 🍄")
+
+	// BPM display
+	bpmDisplay := fmt.Sprintf("%d BPM", m.metronome.BPM)
+	bpmLine := bpmStyle.Render(bpmDisplay)
+
+	// Time signature
+	tsDisplay := fmt.Sprintf("%s", m.metronome.TimeSignature.Name)
+
+	// Beat visualization
+	beats := ""
+	for i := 1; i <= m.metronome.TimeSignature.Beats; i++ {
+		style := beatStyle
+		if i == m.currentBeat && m.metronome.IsPlaying {
+			// Animate the current beat
+			if m.beatAnimation > 0 {
+				style = style.
+					Background(lipgloss.Color("212")).
+					Foreground(lipgloss.Color("231"))
+			} else {
+				style = style.
+					Background(lipgloss.Color("240")).
+					Foreground(lipgloss.Color("231"))
+			}
+		} else {
+			style = style.
+				Background(lipgloss.Color("236")).
+				Foreground(lipgloss.Color("244"))
+		}
+
+		if i == 1 {
+			beats += style.Render("𝟙")
+		} else {
+			beats += style.Render(fmt.Sprintf("%d", i))
+		}
+	}
+
+	// Status
+	status := "Press SPACE to start"
+	if m.metronome.IsPlaying {
+		status = "Playing... Press SPACE to stop"
+	}
+	statusLine := statusStyle.Render(status)
+
+	// Sound status
+	soundStatus := "🔇 Sound: OFF"
+	if m.soundEnabled {
+		soundStatus = "🔊 Sound: ON"
+	}
+	soundLine := statusStyle.Render(soundStatus)
+
+	// Gnome saying
+	saying := m.metronome.TimeSignature.GnomeSaying
+
+	// BPM description
+	bpmDesc := metronome.GetBPMDescription(m.metronome.BPM)
+
+	// Animated gnome
+	gnome := m.getGnomeFrame()
+
+	// Compose the view
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		title,
+		"",
+		bpmLine,
+		bpmDesc,
+		"",
+		tsDisplay,
+		saying,
+		"",
+		beats,
+		"",
+		statusLine,
+		soundLine,
+		"",
+		gnome,
+		"",
+	)
+
+	// Help hint
+	helpHint := m.help.View(m.keys)
+
+	// Quit instruction
+	quitInstruction := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241")).
+		Render("Press 'q' or Ctrl+C to quit")
+
+	// Add help and quit instruction at the bottom
+	bottomContent := lipgloss.JoinVertical(
+		lipgloss.Left,
+		helpHint,
+		quitInstruction,
+	)
+
+	// Final content
+	return lipgloss.JoinVertical(
+		lipgloss.Center,
+		content,
+		"",
+		bottomContent,
+	)
 }
 
 // playSound plays a system sound based on the OS
