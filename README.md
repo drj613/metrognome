@@ -13,17 +13,44 @@ A delightful terminal-based metronome with a garden gnome theme! Keep perfect ti
 
 ## Installation
 
+### Method 1: Direct Install (Recommended)
+
 ```bash
 go install github.com/drj613/metrognome@latest
 ```
 
-Or clone and build:
+### Method 2: Clone and Build
+
+If the direct install fails, clone and build locally:
 
 ```bash
 git clone https://github.com/drj613/metrognome.git
 cd metrognome
-go build
+go mod tidy
+go build -o metrognome
 ```
+
+### Troubleshooting
+
+If you encounter module errors with `go install`, try:
+
+1. **Clear module cache:**
+   ```bash
+   go clean -modcache
+   go install github.com/drj613/metrognome@latest
+   ```
+
+2. **Use specific version:**
+   ```bash
+   go install github.com/drj613/metrognome@main
+   ```
+
+3. **Clone method (always works):**
+   ```bash
+   git clone https://github.com/drj613/metrognome.git
+   cd metrognome
+   go run .
+   ```
 
 ## Usage
 
