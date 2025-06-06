@@ -30,7 +30,7 @@ go build
 Simply run:
 
 ```bash
-metrognome
+./metrognome
 ```
 
 ### Controls
