@@ -40,9 +40,9 @@ If you encounter module errors with `go install`, try:
    go install github.com/drj613/metrognome@latest
    ```
 
-2. **Use specific version:**
+2. **Force bypass proxy (if cache issues persist):**
    ```bash
-   go install github.com/drj613/metrognome@v1.0.0
+   GOPROXY=direct go install github.com/drj613/metrognome@latest
    ```
 
 3. **Clone method (always works):**
